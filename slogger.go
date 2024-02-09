@@ -11,6 +11,10 @@ import (
 	"time"
 )
 
+const (
+	callerSkip = 3
+)
+
 type Option func(*SLogger) Option
 
 type SLogger struct {
@@ -92,7 +96,7 @@ func (sl *SLogger) clone() *SLogger {
 func (sl *SLogger) log(ctx context.Context, level slog.Level, msg string, args ...any) {
 	var pcs [1]uintptr
 	// skip [runtime.Callers, this function, this function's caller]
-	runtime.Callers(2, pcs[:])
+	runtime.Callers(callerSkip, pcs[:])
 	t := time.Now().UTC()
 
 	r := slog.NewRecord(t, level, msg, pcs[0])
@@ -112,7 +116,7 @@ func (sl *SLogger) log(ctx context.Context, level slog.Level, msg string, args .
 func (sl *SLogger) logAttrs(ctx context.Context, level slog.Level, msg string, args ...slog.Attr) {
 	var pcs [1]uintptr
 	// skip [runtime.Callers, this function, this function's caller]
-	runtime.Callers(2, pcs[:])
+	runtime.Callers(callerSkip, pcs[:])
 	t := time.Now().UTC()
 
 	r := slog.NewRecord(t, level, msg, pcs[0])
