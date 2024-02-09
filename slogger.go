@@ -198,8 +198,8 @@ func (sl *SLogger) WithGroup(name string) *SLogger {
 		return sl
 	}
 	c := sl.clone()
-	c.file.WithGroup(name)
-	c.stdout.WithGroup(name)
-	c.stderr.WithGroup(name)
+	c.file.Handler().WithGroup(name)
+	c.stdout.Handler().WithGroup(name)
+	c.stderr.Handler().WithGroup(name)
 	return c
 }
