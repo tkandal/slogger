@@ -26,7 +26,6 @@ func New(f io.Writer, opts ...Option) *SLogger {
 		f = io.Discard
 	}
 	log := &SLogger{
-		stderr:    slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{AddSource: true, Level: slog.LevelError})),
 		level:     slog.LevelInfo,
 		addSource: true,
 	}
@@ -34,20 +33,28 @@ func New(f io.Writer, opts ...Option) *SLogger {
 		opt(log)
 	}
 	log.options = &slog.HandlerOptions{
-		AddSource: log.addSource,
-		Level:     log.level,
-		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
-			// Remove the directory from the source's filename.
-			if a.Key == slog.SourceKey {
-				source := a.Value.Any().(*slog.Source)
-				source.File = filepath.Base(source.File)
-			}
-			return a
-		},
+		AddSource:   log.addSource,
+		Level:       log.level,
+		ReplaceAttr: replaceAttrs,
 	}
-	log.stdout = slog.New(slog.NewJSONHandler(os.Stdout, log.options))
 	log.file = slog.New(slog.NewJSONHandler(f, log.options))
+	log.stdout = slog.New(slog.NewJSONHandler(os.Stdout, log.options))
+	// Log errors to stderr too.
+	log.stderr = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
+		AddSource:   log.addSource,
+		Level:       slog.LevelError,
+		ReplaceAttr: replaceAttrs,
+	}))
 	return log
+}
+
+func replaceAttrs(groups []string, a slog.Attr) slog.Attr {
+	// Remove the directory from the source's filename.
+	if a.Key == slog.SourceKey {
+		source := a.Value.Any().(*slog.Source)
+		source.File = filepath.Base(source.File)
+	}
+	return a
 }
 
 func Level(l slog.Level) Option {
