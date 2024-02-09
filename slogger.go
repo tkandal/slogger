@@ -2,6 +2,7 @@ package slogger
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -27,7 +28,7 @@ func New(f io.Writer, opts ...Option) *SLogger {
 	}
 	log := &SLogger{
 		level:     slog.LevelInfo,
-		addSource: true,
+		addSource: false,
 	}
 	for _, opt := range opts {
 		opt(log)
@@ -52,7 +53,7 @@ func replaceAttrs(groups []string, a slog.Attr) slog.Attr {
 	// Remove the directory from the source's filename.
 	if a.Key == slog.SourceKey {
 		source := a.Value.Any().(*slog.Source)
-		source.File = filepath.Base(source.File)
+		source.File = fmt.Sprintf("%s:%d", filepath.Base(source.File), source.Line)
 	}
 	return a
 }
