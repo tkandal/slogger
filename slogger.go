@@ -103,13 +103,11 @@ func (sl *SLogger) log(ctx context.Context, level slog.Level, msg string, args .
 	r := slog.NewRecord(t, level, msg, pc)
 	r.Add(args...)
 
-	if sl.file.Enabled(ctx, level) {
+	if sl.level >= level {
 		_ = sl.file.Handler().Handle(ctx, r)
-	}
-	if sl.stdout.Enabled(ctx, level) {
 		_ = sl.stdout.Handler().Handle(ctx, r)
 	}
-	if sl.stderr.Enabled(ctx, level) {
+	if sl.stderr.Handler().Enabled(context.Background(), level) {
 		_ = sl.stderr.Handler().Handle(ctx, r)
 	}
 }
@@ -124,13 +122,11 @@ func (sl *SLogger) logAttrs(ctx context.Context, level slog.Level, msg string, a
 	r := slog.NewRecord(t, level, msg, pc)
 	r.AddAttrs(args...)
 
-	if sl.file.Enabled(ctx, level) {
+	if sl.level >= level {
 		_ = sl.file.Handler().Handle(ctx, r)
-	}
-	if sl.stdout.Enabled(ctx, level) {
 		_ = sl.stdout.Handler().Handle(ctx, r)
 	}
-	if sl.stderr.Enabled(ctx, level) {
+	if sl.stderr.Handler().Enabled(context.Background(), level) {
 		_ = sl.stderr.Handler().Handle(ctx, r)
 	}
 }
@@ -144,7 +140,7 @@ func (sl *SLogger) DebugContext(ctx context.Context, msg string, args ...any) {
 }
 
 func (sl *SLogger) Enabled(l slog.Level) bool {
-	return sl.file.Enabled(context.Background(), l)
+	return sl.level >= l
 }
 
 func (sl *SLogger) Error(msg string, args ...any) {
