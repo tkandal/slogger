@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"runtime"
 	"time"
 )
@@ -32,7 +33,18 @@ func New(f io.Writer, opts ...Option) *SLogger {
 	for _, opt := range opts {
 		opt(log)
 	}
-	log.options = &slog.HandlerOptions{AddSource: log.addSource, Level: log.level}
+	log.options = &slog.HandlerOptions{
+		AddSource: log.addSource,
+		Level:     log.level,
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			// Remove the directory from the source's filename.
+			if a.Key == slog.SourceKey {
+				source := a.Value.Any().(*slog.Source)
+				source.File = filepath.Base(source.File)
+			}
+			return a
+		},
+	}
 	log.stdout = slog.New(slog.NewJSONHandler(os.Stdout, log.options))
 	log.file = slog.New(slog.NewJSONHandler(f, log.options))
 	return log
@@ -72,7 +84,7 @@ func (sl *SLogger) clone() *SLogger {
 func (sl *SLogger) log(ctx context.Context, level slog.Level, msg string, args ...any) {
 	var pcs [1]uintptr
 	// skip [runtime.Callers, this function, this function's caller]
-	runtime.Callers(3, pcs[:])
+	runtime.Callers(2, pcs[:])
 	t := time.Now().UTC()
 
 	r := slog.NewRecord(t, level, msg, pcs[0])
