@@ -97,9 +97,10 @@ func (sl *SLogger) log(ctx context.Context, level slog.Level, msg string, args .
 	var pcs [1]uintptr
 	// skip [runtime.Callers, this function, this function's caller]
 	runtime.Callers(callerSkip, pcs[:])
+	pc := pcs[0]
 	t := time.Now().UTC()
 
-	r := slog.NewRecord(t, level, msg, pcs[0])
+	r := slog.NewRecord(t, level, msg, pc)
 	r.Add(args...)
 
 	if sl.file.Enabled(ctx, level) {
@@ -117,9 +118,10 @@ func (sl *SLogger) logAttrs(ctx context.Context, level slog.Level, msg string, a
 	var pcs [1]uintptr
 	// skip [runtime.Callers, this function, this function's caller]
 	runtime.Callers(callerSkip, pcs[:])
+	pc := pcs[0]
 	t := time.Now().UTC()
 
-	r := slog.NewRecord(t, level, msg, pcs[0])
+	r := slog.NewRecord(t, level, msg, pc)
 	r.AddAttrs(args...)
 
 	if sl.file.Enabled(ctx, level) {
