@@ -110,11 +110,11 @@ func (sl *SLogger) logAttrs(ctx context.Context, level slog.Level, msg string, a
 }
 
 func (sl *SLogger) Debug(msg string, args ...any) {
-	sl.log(context.Background(), slog.LevelDebug, msg, args)
+	sl.log(context.Background(), slog.LevelDebug, msg, args...)
 }
 
 func (sl *SLogger) DebugContext(ctx context.Context, msg string, args ...any) {
-	sl.log(ctx, slog.LevelDebug, msg, args)
+	sl.log(ctx, slog.LevelDebug, msg, args...)
 }
 
 func (sl *SLogger) Enabled(l slog.Level) bool {
@@ -122,11 +122,11 @@ func (sl *SLogger) Enabled(l slog.Level) bool {
 }
 
 func (sl *SLogger) Error(msg string, args ...any) {
-	sl.log(context.Background(), slog.LevelError, msg, args)
+	sl.log(context.Background(), slog.LevelError, msg, args...)
 }
 
 func (sl *SLogger) ErrorContext(ctx context.Context, msg string, args ...any) {
-	sl.log(ctx, slog.LevelError, msg, args)
+	sl.log(ctx, slog.LevelError, msg, args...)
 }
 
 func (sl *SLogger) Handler() slog.Handler {
@@ -138,7 +138,7 @@ func (sl *SLogger) Info(msg string, args ...any) {
 }
 
 func (sl *SLogger) InfoContext(ctx context.Context, msg string, args ...any) {
-	sl.log(ctx, slog.LevelInfo, msg, args)
+	sl.log(ctx, slog.LevelInfo, msg, args...)
 }
 
 func (sl *SLogger) Log(ctx context.Context, level slog.Level, msg string, args ...any) {
@@ -154,7 +154,7 @@ func (sl *SLogger) Warn(msg string, args ...any) {
 }
 
 func (sl *SLogger) WarnContext(ctx context.Context, msg string, args ...any) {
-	sl.log(ctx, slog.LevelWarn, msg, args)
+	sl.log(ctx, slog.LevelWarn, msg, args...)
 }
 
 func (sl *SLogger) With(args ...any) *SLogger {
