@@ -37,6 +37,7 @@ type SLogger struct {
 	level     slog.Level
 	addSource bool
 	options   *slog.HandlerOptions
+	logText   bool
 	wc        io.WriteCloser
 	utc       bool
 	filename  string
@@ -56,6 +57,7 @@ func New(opts ...Option) *SLogger {
 		level:     LevelInfo,
 		addSource: false,
 		options:   nil,
+		logText:   false,
 		wc:        nil,
 		utc:       true,
 		filename:  "",
@@ -68,6 +70,7 @@ func New(opts ...Option) *SLogger {
 	for _, opt := range opts {
 		opt(log)
 	}
+
 	log.options = &slog.HandlerOptions{
 		AddSource:   log.addSource,
 		Level:       log.level,
@@ -82,15 +85,35 @@ func New(opts ...Option) *SLogger {
 			LocalTime:  log.localtime,
 			Compress:   log.compress,
 		}
-		log.file = slog.New(slog.NewJSONHandler(log.wc, log.options))
+		var fileHandler slog.Handler
+		if log.logText {
+			fileHandler = slog.NewTextHandler(log.wc, log.options)
+		} else {
+			fileHandler = slog.NewJSONHandler(log.wc, log.options)
+		}
+		log.file = slog.New(fileHandler)
 	}
-	log.stdout = slog.New(slog.NewJSONHandler(os.Stdout, log.options))
-	// Log errors to stderr too.
-	log.stderr = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
+
+	stderrOptions := &slog.HandlerOptions{
 		AddSource:   log.addSource,
-		Level:       slog.LevelError,
+		Level:       LevelError,
 		ReplaceAttr: replaceAttrs,
-	}))
+	}
+
+	var stdoutHandler slog.Handler
+	var stderrHandler slog.Handler
+	if log.logText {
+		stdoutHandler = slog.NewTextHandler(os.Stdout, log.options)
+		// Log errors to stderr too.
+		stderrHandler = slog.NewTextHandler(os.Stderr, stderrOptions)
+	} else {
+		stdoutHandler = slog.NewJSONHandler(os.Stdout, log.options)
+		// Log errors to stderr too.
+		stderrHandler = slog.NewJSONHandler(os.Stderr, stderrOptions)
+	}
+	log.stderr = slog.New(stdoutHandler)
+	log.stderr = slog.New(stderrHandler)
+
 	return log
 }
 
@@ -101,6 +124,15 @@ func replaceAttrs(groups []string, a slog.Attr) slog.Attr {
 		source.File = filepath.Base(source.File)
 	}
 	return a
+}
+
+// LogText turn on or off logging in text format.  The default format is JSON.
+func LogText(b bool) Option {
+	return func(logger *SLogger) Option {
+		tmp := logger.logText
+		logger.logText = b
+		return LogText(tmp)
+	}
 }
 
 // LogLevel set the log-level, level can be set to LevelDebug, LevelInfo, LevelWarn or LevelError.
@@ -282,7 +314,7 @@ func (sl *SLogger) LogAttrs(ctx context.Context, level slog.Level, msg string, a
 }
 
 func (sl *SLogger) Sync() error {
-	if sl.file != nil && sl.wc != nil {
+	if sl.wc != nil {
 		return sl.wc.Close()
 	}
 	return nil
