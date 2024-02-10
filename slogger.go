@@ -32,8 +32,11 @@ const (
 type Option func(*SLogger) Option
 
 // SLogger is a custom logger that log to stdout and stderr as default.  If a filename is given via options,
-// it will log to the given file in addition to stdout and stderr. Only log messages with LevelError will
-// also be logged to stderr.
+// it will log to the given file in addition to stdout and stderr.  The log file will get rotated depending on
+// option values, the max file size in megabytes, number of how many old log files to retain, if the old
+// log files should be compressed and how long to retain old files.  Check options for default values.
+//
+// Only log messages with LevelError will also be logged to stderr in addition to other destinations.
 type SLogger struct {
 	file      *slog.Logger
 	stdout    *slog.Logger
@@ -52,7 +55,7 @@ type SLogger struct {
 	compress  bool
 }
 
-// New creates a new Logger with the given options.  Check options for the default settings.
+// New creates a new Logger with the given options, if any.  Check options for the default settings.
 func New(opts ...Option) *SLogger {
 	sl := &SLogger{
 		file:      nil,
@@ -174,7 +177,7 @@ func MaxSize(s int) Option {
 	}
 }
 
-// MaxBack set the number of backup files for the log file.  The default is 3 backup files.
+// MaxBack set the number of old log files to retain.  The default is 3 files.
 func MaxBack(b int) Option {
 	return func(sl *SLogger) Option {
 		tmp := sl.maxBack
@@ -183,7 +186,7 @@ func MaxBack(b int) Option {
 	}
 }
 
-// MaxAge set the max number of days the backup files are retained.  The default is 28 days.
+// MaxAge set the max number of days the old log files are retained.  The default is 28 days.
 func MaxAge(a int) Option {
 	return func(sl *SLogger) Option {
 		tmp := sl.maxAge
@@ -192,8 +195,8 @@ func MaxAge(a int) Option {
 	}
 }
 
-// LocalTime set if the backup files should have a postfix in local time.  The default is off
-// and the backup file postfix is in UTC time.
+// LocalTime set if the old log files should have a postfix in local time.  The default is off
+// and the old log file postfix is in UTC time.
 func LocalTime(b bool) Option {
 	return func(sl *SLogger) Option {
 		tmp := sl.localtime
@@ -202,7 +205,7 @@ func LocalTime(b bool) Option {
 	}
 }
 
-// Compress set if the backup files should be compresses with gzip.  The default is off.
+// Compress set if the old log files should be compresses with gzip.  The default is off.
 func Compress(b bool) Option {
 	return func(sl *SLogger) Option {
 		tmp := sl.localtime
