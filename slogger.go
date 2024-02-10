@@ -224,7 +224,7 @@ func (sl *SLogger) log(ctx context.Context, level slog.Level, msg string, args .
 	r := slog.NewRecord(t, level, msg, pc)
 	r.Add(args...)
 
-	if sl.level >= level {
+	if level >= sl.level {
 		if sl.file != nil {
 			_ = sl.file.Handler().Handle(ctx, r)
 		}
