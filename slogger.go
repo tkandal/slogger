@@ -2,6 +2,7 @@ package slogger
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -224,16 +225,26 @@ func (sl *SLogger) clone() *SLogger {
 	return &c
 }
 
-func (sl *SLogger) handle(ctx context.Context, level slog.Level, r slog.Record) {
+func (sl *SLogger) handle(ctx context.Context, level slog.Level, r slog.Record) error {
 	if sl.file != nil && sl.file.Handler().Enabled(ctx, level) {
-		_ = sl.file.Handler().Handle(ctx, r)
+		if err := sl.file.Handler().Handle(ctx, r); err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "failed to write to %s; error = %v", sl.filename, err)
+			return err
+		}
 	}
 	if sl.stdout != nil && sl.stdout.Handler().Enabled(ctx, level) {
-		_ = sl.stdout.Handler().Handle(ctx, r)
+		if err := sl.stdout.Handler().Handle(ctx, r); err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "failed to write to stdput; error = %v", err)
+			return err
+		}
 	}
 	if sl.stderr != nil && sl.stderr.Handler().Enabled(ctx, level) {
-		_ = sl.stderr.Handler().Handle(ctx, r)
+		if err := sl.stderr.Handler().Handle(ctx, r); err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "failed to write to stderr; error = %v", err)
+			return err
+		}
 	}
+	return nil
 }
 
 func (sl *SLogger) getTime() time.Time {
@@ -252,7 +263,7 @@ func (sl *SLogger) log(ctx context.Context, level slog.Level, msg string, args .
 
 	r := slog.NewRecord(sl.getTime(), level, msg, pc)
 	r.Add(args...)
-	sl.handle(ctx, level, r)
+	_ = sl.handle(ctx, level, r)
 }
 
 func (sl *SLogger) logAttrs(ctx context.Context, level slog.Level, msg string, args ...slog.Attr) {
@@ -264,7 +275,7 @@ func (sl *SLogger) logAttrs(ctx context.Context, level slog.Level, msg string, a
 
 	r := slog.NewRecord(sl.getTime(), level, msg, pc)
 	r.AddAttrs(args...)
-	sl.handle(ctx, level, r)
+	_ = sl.handle(ctx, level, r)
 }
 
 // Debug logs at LevelDebug
