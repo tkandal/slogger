@@ -2,17 +2,21 @@ package slogger
 
 import (
 	"context"
-	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
 	"time"
+
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 const (
 	badKey     = "!BADKEY"
 	callerSkip = 3
+	maxSize    = 128
+	maxBack    = 3
+	maxAge     = 28
 )
 
 type Option func(*SLogger) Option
@@ -24,15 +28,24 @@ type SLogger struct {
 	level     slog.Level
 	addSource bool
 	options   *slog.HandlerOptions
+	filename  string
+	maxSize   int
+	maxBack   int
+	maxAge    int
+	localtime bool
+	compress  bool
 }
 
-func New(f io.Writer, opts ...Option) *SLogger {
-	if f == nil {
-		f = io.Discard
-	}
+func New(opts ...Option) (*SLogger, error) {
 	log := &SLogger{
 		level:     slog.LevelInfo,
 		addSource: false,
+		filename:  "",
+		maxSize:   maxSize,
+		maxBack:   maxBack,
+		maxAge:    maxAge,
+		localtime: false,
+		compress:  false,
 	}
 	for _, opt := range opts {
 		opt(log)
@@ -42,7 +55,17 @@ func New(f io.Writer, opts ...Option) *SLogger {
 		Level:       log.level,
 		ReplaceAttr: replaceAttrs,
 	}
-	log.file = slog.New(slog.NewJSONHandler(f, log.options))
+	if log.filename != "" {
+		w := &lumberjack.Logger{
+			Filename:   log.filename,
+			MaxSize:    log.maxSize, // megabytes
+			MaxBackups: log.maxBack,
+			MaxAge:     log.maxAge,
+			LocalTime:  log.localtime,
+			Compress:   log.compress,
+		}
+		log.file = slog.New(slog.NewJSONHandler(w, log.options))
+	}
 	log.stdout = slog.New(slog.NewJSONHandler(os.Stdout, log.options))
 	// Log errors to stderr too.
 	log.stderr = slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
@@ -50,7 +73,7 @@ func New(f io.Writer, opts ...Option) *SLogger {
 		Level:       slog.LevelError,
 		ReplaceAttr: replaceAttrs,
 	}))
-	return log
+	return log, nil
 }
 
 func replaceAttrs(groups []string, a slog.Attr) slog.Attr {
@@ -75,6 +98,54 @@ func AddSource(b bool) Option {
 		tmp := logger.addSource
 		logger.addSource = b
 		return AddSource(tmp)
+	}
+}
+
+func Filename(s string) Option {
+	return func(logger *SLogger) Option {
+		tmp := logger.filename
+		logger.filename = s
+		return Filename(tmp)
+	}
+}
+
+func MaxSize(s int) Option {
+	return func(logger *SLogger) Option {
+		tmp := logger.maxSize
+		logger.maxBack = s
+		return MaxSize(tmp)
+	}
+}
+
+func MaxBack(b int) Option {
+	return func(logger *SLogger) Option {
+		tmp := logger.maxBack
+		logger.maxBack = b
+		return MaxBack(tmp)
+	}
+}
+
+func MaxAge(a int) Option {
+	return func(logger *SLogger) Option {
+		tmp := logger.maxAge
+		logger.maxAge = a
+		return MaxAge(tmp)
+	}
+}
+
+func LocalTime(b bool) Option {
+	return func(logger *SLogger) Option {
+		tmp := logger.localtime
+		logger.localtime = b
+		return LocalTime(tmp)
+	}
+}
+
+func Compress(b bool) Option {
+	return func(logger *SLogger) Option {
+		tmp := logger.localtime
+		logger.compress = b
+		return Compress(tmp)
 	}
 }
 
@@ -104,7 +175,9 @@ func (sl *SLogger) log(ctx context.Context, level slog.Level, msg string, args .
 	r.Add(args...)
 
 	if sl.level >= level {
-		_ = sl.file.Handler().Handle(ctx, r)
+		if sl.file != nil {
+			_ = sl.file.Handler().Handle(ctx, r)
+		}
 		_ = sl.stdout.Handler().Handle(ctx, r)
 	}
 	if sl.stderr.Handler().Enabled(context.Background(), level) {
@@ -123,7 +196,9 @@ func (sl *SLogger) logAttrs(ctx context.Context, level slog.Level, msg string, a
 	r.AddAttrs(args...)
 
 	if sl.level >= level {
-		_ = sl.file.Handler().Handle(ctx, r)
+		if sl.file != nil {
+			_ = sl.file.Handler().Handle(ctx, r)
+		}
 		_ = sl.stdout.Handler().Handle(ctx, r)
 	}
 	if sl.stderr.Handler().Enabled(context.Background(), level) {
@@ -152,7 +227,10 @@ func (sl *SLogger) ErrorContext(ctx context.Context, msg string, args ...any) {
 }
 
 func (sl *SLogger) Handler() slog.Handler {
-	return sl.file.Handler()
+	if sl.file != nil {
+		return sl.file.Handler()
+	}
+	return sl.stdout.Handler()
 }
 
 func (sl *SLogger) Info(msg string, args ...any) {
@@ -184,7 +262,9 @@ func (sl *SLogger) With(args ...any) *SLogger {
 		return sl
 	}
 	c := sl.clone()
-	c.file = slog.New(sl.file.Handler().WithAttrs(argsToAttrSlice(args)))
+	if sl.file != nil {
+		c.file = slog.New(sl.file.Handler().WithAttrs(argsToAttrSlice(args)))
+	}
 	c.stdout = slog.New(sl.stdout.Handler().WithAttrs(argsToAttrSlice(args)))
 	c.stderr = slog.New(sl.stderr.Handler().WithAttrs(argsToAttrSlice(args)))
 	return c
@@ -195,7 +275,9 @@ func (sl *SLogger) WithGroup(name string) *SLogger {
 		return sl
 	}
 	c := sl.clone()
-	c.file = slog.New(sl.file.Handler().WithGroup(name))
+	if sl.file != nil {
+		c.file = slog.New(sl.file.Handler().WithGroup(name))
+	}
 	c.stdout = slog.New(sl.stdout.Handler().WithGroup(name))
 	c.stderr = slog.New(sl.stderr.Handler().WithGroup(name))
 	return c
