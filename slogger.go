@@ -37,7 +37,7 @@ type SLogger struct {
 	addSource bool
 	level     slog.Level
 	options   *slog.HandlerOptions
-	logText   bool
+	text      bool
 	wc        io.WriteCloser
 	utc       bool
 	filename  string
@@ -57,7 +57,7 @@ func New(opts ...Option) *SLogger {
 		addSource: false,
 		level:     LevelInfo,
 		options:   nil,
-		logText:   false,
+		text:      false,
 		wc:        nil,
 		utc:       true,
 		filename:  "",
@@ -85,25 +85,25 @@ func New(opts ...Option) *SLogger {
 			LocalTime:  sl.localtime,
 			Compress:   sl.compress,
 		}
-		sl.file = slog.New(getHandler(sl.wc, sl.logText, sl.options))
+		sl.file = slog.New(getHandler(sl.wc, sl.text, sl.options))
 	}
-	sl.stdout = slog.New(getHandler(os.Stdout, sl.logText, sl.options))
+	sl.stdout = slog.New(getHandler(os.Stdout, sl.text, sl.options))
 
 	stderrOptions := &slog.HandlerOptions{
 		AddSource:   sl.addSource,
 		Level:       LevelError,
 		ReplaceAttr: replaceAttrs,
 	}
-	sl.stderr = slog.New(getHandler(os.Stderr, sl.logText, stderrOptions))
+	sl.stderr = slog.New(getHandler(os.Stderr, sl.text, stderrOptions))
 
 	return sl
 }
 
-func getHandler(w io.WriteCloser, logText bool, options *slog.HandlerOptions) slog.Handler {
-	if logText {
-		return slog.NewTextHandler(w, options)
+func getHandler(w io.WriteCloser, text bool, opts *slog.HandlerOptions) slog.Handler {
+	if text {
+		return slog.NewTextHandler(w, opts)
 	}
-	return slog.NewJSONHandler(w, options)
+	return slog.NewJSONHandler(w, opts)
 }
 
 func replaceAttrs(groups []string, a slog.Attr) slog.Attr {
@@ -118,8 +118,8 @@ func replaceAttrs(groups []string, a slog.Attr) slog.Attr {
 // LogText turn on or off logging in text format.  The default format is JSON.
 func LogText(b bool) Option {
 	return func(sl *SLogger) Option {
-		tmp := sl.logText
-		sl.logText = b
+		tmp := sl.text
+		sl.text = b
 		return LogText(tmp)
 	}
 }
