@@ -12,6 +12,10 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+/*
+ * Copyright (c) 2024 Norwegian University of Science and Technology, Norway
+ */
+
 const (
 	// LevelDebug set this logger to log messages at debug level and above.
 	LevelDebug = slog.LevelDebug
@@ -61,7 +65,7 @@ func New(opts ...Option) *SLogger {
 		file:      nil,
 		stdout:    nil,
 		stderr:    nil,
-		addSource: true,
+		addSource: false,
 		level:     LevelInfo,
 		options:   nil,
 		text:      false,
@@ -141,7 +145,7 @@ func LogLevel(l slog.Level) Option {
 	}
 }
 
-// AddSource turn on or of logging of the source file information. The default is on.
+// AddSource turn on or of logging of the source file information. The default is off.
 func AddSource(b bool) Option {
 	return func(sl *SLogger) Option {
 		tmp := sl.addSource
