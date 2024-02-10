@@ -111,7 +111,7 @@ func New(opts ...Option) *SLogger {
 		// Log errors to stderr too.
 		stderrHandler = slog.NewJSONHandler(os.Stderr, stderrOptions)
 	}
-	log.stderr = slog.New(stdoutHandler)
+	log.stdout = slog.New(stdoutHandler)
 	log.stderr = slog.New(stderrHandler)
 
 	return log
