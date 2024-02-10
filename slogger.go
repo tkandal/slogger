@@ -13,9 +13,13 @@ import (
 )
 
 const (
+	// LevelDebug set this logger to log messages at debug level and above.
 	LevelDebug = slog.LevelDebug
-	LevelInfo  = slog.LevelInfo
-	LevelWarn  = slog.LevelWarn
+	// LevelInfo set this logger to log messages at info level and above.
+	LevelInfo = slog.LevelInfo
+	// LevelWarn set this logger to log messages at warning level and above.
+	LevelWarn = slog.LevelWarn
+	// LevelError set this logger to log messages at error level.
 	LevelError = slog.LevelError
 	badKey     = "!BADKEY"
 	callerSkip = 3
@@ -29,7 +33,7 @@ type Option func(*SLogger) Option
 
 // SLogger is a custom logger that log to stdout and stderr as default.  If a filename is given via options,
 // it will log to the given file in addition to stdout and stderr. Only log messages with LevelError will
-// be logged to stderr.
+// also be logged to stderr.
 type SLogger struct {
 	file      *slog.Logger
 	stdout    *slog.Logger
@@ -48,13 +52,13 @@ type SLogger struct {
 	compress  bool
 }
 
-// New will allocate a new SLogger-object and return a pointer to the new SLogger-object.
+// New creates a new Logger with the given options.  Check options for the default settings.
 func New(opts ...Option) *SLogger {
 	sl := &SLogger{
 		file:      nil,
 		stdout:    nil,
 		stderr:    nil,
-		addSource: false,
+		addSource: true,
 		level:     LevelInfo,
 		options:   nil,
 		text:      false,
@@ -134,7 +138,7 @@ func LogLevel(l slog.Level) Option {
 	}
 }
 
-// AddSource turn on or of logging af the source file. The default is false.
+// AddSource turn on or of logging of the source file information. The default is on.
 func AddSource(b bool) Option {
 	return func(sl *SLogger) Option {
 		tmp := sl.addSource
@@ -152,7 +156,7 @@ func LogUTC(b bool) Option {
 	}
 }
 
-// Filename set the name of a log file in addition to logging to stdout and stderr.  The default is empty.
+// Filename set the name of a log file in addition to logging to stdout and stderr.  The default is no filename.
 func Filename(s string) Option {
 	return func(sl *SLogger) Option {
 		tmp := sl.filename
@@ -188,7 +192,8 @@ func MaxAge(a int) Option {
 	}
 }
 
-// LocalTime set if the backup files should have a postfix in local time.  The default is off and the file postfix is UTC.
+// LocalTime set if the backup files should have a postfix in local time.  The default is off
+// and the backup file postfix is in UTC time.
 func LocalTime(b bool) Option {
 	return func(sl *SLogger) Option {
 		tmp := sl.localtime
@@ -231,6 +236,7 @@ func (sl *SLogger) getTime() time.Time {
 }
 
 func (sl *SLogger) log(ctx context.Context, level slog.Level, msg string, args ...any) {
+	// NB! This code cannot be refactored, if refactored the call stack will get out of sync!
 	var pcs [1]uintptr
 	// skip [runtime.Callers, this function, this function's caller]
 	runtime.Callers(callerSkip, pcs[:])
@@ -242,6 +248,7 @@ func (sl *SLogger) log(ctx context.Context, level slog.Level, msg string, args .
 }
 
 func (sl *SLogger) logAttrs(ctx context.Context, level slog.Level, msg string, args ...slog.Attr) {
+	// NB! This code cannot be refactored, if refactored the call stack will get out of sync!
 	var pcs [1]uintptr
 	// skip [runtime.Callers, this function, this function's caller]
 	runtime.Callers(callerSkip, pcs[:])
@@ -252,26 +259,32 @@ func (sl *SLogger) logAttrs(ctx context.Context, level slog.Level, msg string, a
 	sl.handle(ctx, level, r)
 }
 
+// Debug logs at LevelDebug
 func (sl *SLogger) Debug(msg string, args ...any) {
 	sl.log(context.Background(), slog.LevelDebug, msg, args...)
 }
 
+// DebugContext logs at LevelDebug with the given context.
 func (sl *SLogger) DebugContext(ctx context.Context, msg string, args ...any) {
 	sl.log(ctx, slog.LevelDebug, msg, args...)
 }
 
+// Enabled reports whether l emits log records at the given context and level.
 func (sl *SLogger) Enabled(l slog.Level) bool {
 	return sl.level >= l
 }
 
+// Error logs at LevelError.
 func (sl *SLogger) Error(msg string, args ...any) {
 	sl.log(context.Background(), slog.LevelError, msg, args...)
 }
 
+// ErrorContext logs at LevelError with the given context.
 func (sl *SLogger) ErrorContext(ctx context.Context, msg string, args ...any) {
 	sl.log(ctx, slog.LevelError, msg, args...)
 }
 
+// Handler returns sl's Handler.
 func (sl *SLogger) Handler() slog.Handler {
 	if sl.file != nil {
 		return sl.file.Handler()
@@ -279,22 +292,36 @@ func (sl *SLogger) Handler() slog.Handler {
 	return sl.stdout.Handler()
 }
 
+// Info logs at LevelInfo.
 func (sl *SLogger) Info(msg string, args ...any) {
 	sl.log(context.Background(), slog.LevelInfo, msg, args...)
 }
 
+// InfoContext logs at LevelInfo with the given context.
 func (sl *SLogger) InfoContext(ctx context.Context, msg string, args ...any) {
 	sl.log(ctx, slog.LevelInfo, msg, args...)
 }
 
+// Log emits a log record with the current time and the given level and message.
+// The Record's Attrs consist of the Logger's attributes followed by
+// the Attrs specified by args.
+//
+// The attribute arguments are processed as follows:
+//   - If an argument is an Attr, it is used as is.
+//   - If an argument is a string and this is not the last argument,
+//     the following argument is treated as the value and the two are combined
+//     into an Attr.
+//   - Otherwise, the argument is treated as a value with key "!BADKEY".
 func (sl *SLogger) Log(ctx context.Context, level slog.Level, msg string, args ...any) {
 	sl.log(ctx, level, msg, args...)
 }
 
+// LogAttrs is a more efficient version of SLogger.Log that accepts only Attrs.
 func (sl *SLogger) LogAttrs(ctx context.Context, level slog.Level, msg string, attrs ...slog.Attr) {
 	sl.logAttrs(ctx, level, msg, attrs...)
 }
 
+// Sync flush and close the underlying log file.
 func (sl *SLogger) Sync() error {
 	if sl.wc != nil {
 		return sl.wc.Close()
@@ -302,14 +329,18 @@ func (sl *SLogger) Sync() error {
 	return nil
 }
 
+// Warn logs at LevelWarn.
 func (sl *SLogger) Warn(msg string, args ...any) {
 	sl.log(context.Background(), slog.LevelWarn, msg, args...)
 }
 
+// WarnContext logs at LevelWarn with the given context.
 func (sl *SLogger) WarnContext(ctx context.Context, msg string, args ...any) {
 	sl.log(ctx, slog.LevelWarn, msg, args...)
 }
 
+// With returns a Logger that includes the given attributes in each output operation. Arguments are
+// converted to attributes as if by SLogger.Log.
 func (sl *SLogger) With(args ...any) *SLogger {
 	if len(args) == 0 {
 		return sl
@@ -323,6 +354,12 @@ func (sl *SLogger) With(args ...any) *SLogger {
 	return c
 }
 
+// WithGroup returns a Logger that starts a group, if name is non-empty.
+// The keys of all attributes added to the Logger will be qualified by the given
+// name. (How that qualification happens depends on the [Handler.WithGroup]
+// method of the Logger's Handler.)
+//
+// If name is empty, WithGroup returns the receiver.
 func (sl *SLogger) WithGroup(name string) *SLogger {
 	if name == "" {
 		return sl
