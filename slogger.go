@@ -2,6 +2,7 @@ package slogger
 
 import (
 	"context"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -23,8 +24,14 @@ const (
 	maxAge     = 28
 )
 
+// Level are the type for possible log levels.
+type Level slog.Level
+
+// Option is the type for allowed options.
 type Option func(*SLogger) Option
 
+// SLogger is a custom logger that log to stdout and stderr as default.  If a filename is given via options,
+// it will log to the given file in addition to stdout and stderr.
 type SLogger struct {
 	file      *slog.Logger
 	stdout    *slog.Logger
@@ -32,6 +39,7 @@ type SLogger struct {
 	level     slog.Level
 	addSource bool
 	options   *slog.HandlerOptions
+	wc        io.WriteCloser
 	filename  string
 	maxSize   int
 	maxBack   int
@@ -40,9 +48,10 @@ type SLogger struct {
 	compress  bool
 }
 
-func New(opts ...Option) (*SLogger, error) {
+// New will allocate a new SLogger-object and return a pointer to the new SLogger-object.
+func New(opts ...Option) *SLogger {
 	log := &SLogger{
-		level:     slog.LevelInfo,
+		level:     LevelInfo,
 		addSource: false,
 		filename:  "",
 		maxSize:   maxSize,
@@ -60,7 +69,7 @@ func New(opts ...Option) (*SLogger, error) {
 		ReplaceAttr: replaceAttrs,
 	}
 	if log.filename != "" {
-		w := &lumberjack.Logger{
+		log.wc = &lumberjack.Logger{
 			Filename:   log.filename,
 			MaxSize:    log.maxSize, // megabytes
 			MaxBackups: log.maxBack,
@@ -68,7 +77,7 @@ func New(opts ...Option) (*SLogger, error) {
 			LocalTime:  log.localtime,
 			Compress:   log.compress,
 		}
-		log.file = slog.New(slog.NewJSONHandler(w, log.options))
+		log.file = slog.New(slog.NewJSONHandler(log.wc, log.options))
 	}
 	log.stdout = slog.New(slog.NewJSONHandler(os.Stdout, log.options))
 	// Log errors to stderr too.
@@ -77,7 +86,7 @@ func New(opts ...Option) (*SLogger, error) {
 		Level:       slog.LevelError,
 		ReplaceAttr: replaceAttrs,
 	}))
-	return log, nil
+	return log
 }
 
 func replaceAttrs(groups []string, a slog.Attr) slog.Attr {
@@ -89,12 +98,12 @@ func replaceAttrs(groups []string, a slog.Attr) slog.Attr {
 	return a
 }
 
-// Level set the log-level.
-func Level(l slog.Level) Option {
+// LogLevel set the log-level, level can be set to LevelDebug, LevelInfo, LevelWarn or LevelError.
+func LogLevel(l slog.Level) Option {
 	return func(logger *SLogger) Option {
 		tmp := logger.level
 		logger.level = l
-		return Level(tmp)
+		return LogLevel(tmp)
 	}
 }
 
@@ -259,6 +268,13 @@ func (sl *SLogger) Log(ctx context.Context, level slog.Level, msg string, args .
 
 func (sl *SLogger) LogAttrs(ctx context.Context, level slog.Level, msg string, attrs ...slog.Attr) {
 	sl.logAttrs(ctx, level, msg, attrs...)
+}
+
+func (sl *SLogger) Sync() error {
+	if sl.file != nil && sl.wc != nil {
+		return sl.wc.Close()
+	}
+	return nil
 }
 
 func (sl *SLogger) Warn(msg string, args ...any) {
