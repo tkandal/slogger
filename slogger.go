@@ -223,13 +223,6 @@ func (sl *SLogger) handle(ctx context.Context, level slog.Level, r slog.Record) 
 	}
 }
 
-func getCaller() uintptr {
-	var pcs [1]uintptr
-	// skip [runtime.Callers, this function, this function's caller]
-	runtime.Callers(callerSkip, pcs[:])
-	return pcs[0]
-}
-
 func (sl *SLogger) getTime() time.Time {
 	if !sl.utc {
 		return time.Now()
@@ -238,13 +231,23 @@ func (sl *SLogger) getTime() time.Time {
 }
 
 func (sl *SLogger) log(ctx context.Context, level slog.Level, msg string, args ...any) {
-	r := slog.NewRecord(sl.getTime(), level, msg, getCaller())
+	var pcs [1]uintptr
+	// skip [runtime.Callers, this function, this function's caller]
+	runtime.Callers(callerSkip, pcs[:])
+	pc := pcs[0]
+
+	r := slog.NewRecord(sl.getTime(), level, msg, pc)
 	r.Add(args...)
 	sl.handle(ctx, level, r)
 }
 
 func (sl *SLogger) logAttrs(ctx context.Context, level slog.Level, msg string, args ...slog.Attr) {
-	r := slog.NewRecord(sl.getTime(), level, msg, getCaller())
+	var pcs [1]uintptr
+	// skip [runtime.Callers, this function, this function's caller]
+	runtime.Callers(callerSkip, pcs[:])
+	pc := pcs[0]
+
+	r := slog.NewRecord(sl.getTime(), level, msg, pc)
 	r.AddAttrs(args...)
 	sl.handle(ctx, level, r)
 }
