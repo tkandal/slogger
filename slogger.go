@@ -28,7 +28,8 @@ const (
 type Option func(*SLogger) Option
 
 // SLogger is a custom logger that log to stdout and stderr as default.  If a filename is given via options,
-// it will log to the given file in addition to stdout and stderr.
+// it will log to the given file in addition to stdout and stderr. Only log messages with LevelError will
+// be logged to stderr.
 type SLogger struct {
 	file      *slog.Logger
 	stdout    *slog.Logger
@@ -37,6 +38,7 @@ type SLogger struct {
 	addSource bool
 	options   *slog.HandlerOptions
 	wc        io.WriteCloser
+	utc       bool
 	filename  string
 	maxSize   int
 	maxBack   int
@@ -48,8 +50,14 @@ type SLogger struct {
 // New will allocate a new SLogger-object and return a pointer to the new SLogger-object.
 func New(opts ...Option) *SLogger {
 	log := &SLogger{
+		file:      nil,
+		stdout:    nil,
+		stderr:    nil,
 		level:     LevelInfo,
 		addSource: false,
+		options:   nil,
+		wc:        nil,
+		utc:       true,
 		filename:  "",
 		maxSize:   maxSize,
 		maxBack:   maxBack,
@@ -96,6 +104,7 @@ func replaceAttrs(groups []string, a slog.Attr) slog.Attr {
 }
 
 // LogLevel set the log-level, level can be set to LevelDebug, LevelInfo, LevelWarn or LevelError.
+// The default level is LevelInfo.
 func LogLevel(l slog.Level) Option {
 	return func(logger *SLogger) Option {
 		tmp := logger.level
@@ -104,7 +113,7 @@ func LogLevel(l slog.Level) Option {
 	}
 }
 
-// AddSource turn on or of logging af the source file.
+// AddSource turn on or of logging af the source file. The default is false.
 func AddSource(b bool) Option {
 	return func(logger *SLogger) Option {
 		tmp := logger.addSource
@@ -113,7 +122,16 @@ func AddSource(b bool) Option {
 	}
 }
 
-// Filename set the name of a log file in addition to logging to stdout and stderr.
+// LogUTC turn on or off logging in UTC time, otherwise time will be in local time.  The default is on.
+func LogUTC(b bool) Option {
+	return func(logger *SLogger) Option {
+		tmp := logger.utc
+		logger.utc = b
+		return LogUTC(tmp)
+	}
+}
+
+// Filename set the name of a log file in addition to logging to stdout and stderr.  The default is empty.
 func Filename(s string) Option {
 	return func(logger *SLogger) Option {
 		tmp := logger.filename
@@ -122,7 +140,7 @@ func Filename(s string) Option {
 	}
 }
 
-// MaxSize set the max number for megabytes in size before the log file is rotated.
+// MaxSize set the max number for megabytes in size before the log file is rotated. The default is 128 megabytes.
 func MaxSize(s int) Option {
 	return func(logger *SLogger) Option {
 		tmp := logger.maxSize
@@ -131,7 +149,7 @@ func MaxSize(s int) Option {
 	}
 }
 
-// MaxBack set the number of backups for the log file.
+// MaxBack set the number of backup files for the log file.  The default is 3 backup files.
 func MaxBack(b int) Option {
 	return func(logger *SLogger) Option {
 		tmp := logger.maxBack
@@ -140,7 +158,7 @@ func MaxBack(b int) Option {
 	}
 }
 
-// MaxAge set the max number of days before the log file is rotated.
+// MaxAge set the max number of days the backup files are retained.  The default is 28 days.
 func MaxAge(a int) Option {
 	return func(logger *SLogger) Option {
 		tmp := logger.maxAge
@@ -149,7 +167,7 @@ func MaxAge(a int) Option {
 	}
 }
 
-// LocalTime set if the backup files should have a postfix in local time.
+// LocalTime set if the backup files should have a postfix in local time.  The default is off and the file postfix is UTC.
 func LocalTime(b bool) Option {
 	return func(logger *SLogger) Option {
 		tmp := logger.localtime
@@ -158,7 +176,7 @@ func LocalTime(b bool) Option {
 	}
 }
 
-// Compress set if the backup files should be compresses with gzip.
+// Compress set if the backup files should be compresses with gzip.  The default is off.
 func Compress(b bool) Option {
 	return func(logger *SLogger) Option {
 		tmp := logger.localtime
@@ -178,6 +196,9 @@ func (sl *SLogger) log(ctx context.Context, level slog.Level, msg string, args .
 	runtime.Callers(callerSkip, pcs[:])
 	pc := pcs[0]
 	t := time.Now().UTC()
+	if !sl.utc {
+		t = t.Local()
+	}
 
 	r := slog.NewRecord(t, level, msg, pc)
 	r.Add(args...)
@@ -199,6 +220,9 @@ func (sl *SLogger) logAttrs(ctx context.Context, level slog.Level, msg string, a
 	runtime.Callers(callerSkip, pcs[:])
 	pc := pcs[0]
 	t := time.Now().UTC()
+	if !sl.utc {
+		t = t.Local()
+	}
 
 	r := slog.NewRecord(t, level, msg, pc)
 	r.AddAttrs(args...)
