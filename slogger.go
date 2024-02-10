@@ -248,7 +248,7 @@ func (sl *SLogger) logAttrs(ctx context.Context, level slog.Level, msg string, a
 	r := slog.NewRecord(t, level, msg, pc)
 	r.AddAttrs(args...)
 
-	if sl.level >= level {
+	if level >= sl.level {
 		if sl.file != nil {
 			_ = sl.file.Handler().Handle(ctx, r)
 		}
