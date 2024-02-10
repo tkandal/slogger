@@ -159,7 +159,8 @@ func LogUTC(b bool) Option {
 	}
 }
 
-// Filename set the name of a log file in addition to logging to stdout and stderr.  The default is no file.
+// Filename set the name of a log file in addition to logging to stdout and stderr.  The default is no file,
+// i.e. only logging to stdout and stderr.
 func Filename(s string) Option {
 	return func(sl *SLogger) Option {
 		tmp := sl.filename
@@ -168,7 +169,7 @@ func Filename(s string) Option {
 	}
 }
 
-// MaxSize set the max number for megabytes in size before the log file is rotated. The default is 128 megabytes.
+// MaxSize set the max number of megabytes in size before the log file is rotated. The default is 128 megabytes.
 func MaxSize(s int) Option {
 	return func(sl *SLogger) Option {
 		tmp := sl.maxSize
@@ -287,12 +288,20 @@ func (sl *SLogger) ErrorContext(ctx context.Context, msg string, args ...any) {
 	sl.log(ctx, slog.LevelError, msg, args...)
 }
 
-// Handler returns sl's Handler.
-func (sl *SLogger) Handler() slog.Handler {
+// FileHandler returns sl's file Handler if logging to file was enabled by options, otherwise nil.
+func (sl *SLogger) FileHandler() slog.Handler {
 	if sl.file != nil {
 		return sl.file.Handler()
 	}
-	return sl.stdout.Handler()
+	return nil
+}
+
+// StdoutHandler returns sl's stdout Handler if stdout has a handler, otherwise nil.
+func (sl *SLogger) StdoutHandler() slog.Handler {
+	if sl.stdout != nil {
+		return sl.stdout.Handler()
+	}
+	return nil
 }
 
 // Info logs at LevelInfo.
