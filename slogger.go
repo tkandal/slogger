@@ -206,7 +206,7 @@ func LocalTime(b bool) Option {
 	}
 }
 
-// Compress set if the old log files should be compresses with gzip.  The default is off.
+// Compress set compression of old log files to on or off.  The default is off.
 func Compress(b bool) Option {
 	return func(sl *SLogger) Option {
 		tmp := sl.compress
