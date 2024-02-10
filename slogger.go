@@ -231,12 +231,12 @@ func getCaller() uintptr {
 }
 
 func (sl *SLogger) getTime() time.Time {
-	t := time.Now().UTC()
 	if !sl.utc {
-		t = t.Local()
+		return time.Now()
 	}
-	return t
+	return time.Now().UTC()
 }
+
 func (sl *SLogger) log(ctx context.Context, level slog.Level, msg string, args ...any) {
 	r := slog.NewRecord(sl.getTime(), level, msg, getCaller())
 	r.Add(args...)
