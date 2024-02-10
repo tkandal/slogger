@@ -36,7 +36,7 @@ type Option func(*SLogger) Option
 // option values, the max file size in megabytes, number of how many old log files to retain, if the old
 // log files should be compressed and how long to retain old files.  Check options for default values.
 //
-// Only log messages with LevelError will also be logged to stderr in addition to other destinations.
+// Only log messages with LevelError will be logged to stderr in addition to other destinations.
 type SLogger struct {
 	file      *slog.Logger
 	stdout    *slog.Logger
