@@ -211,19 +211,7 @@ func (sl *SLogger) clone() *SLogger {
 	return &c
 }
 
-func (sl *SLogger) log(ctx context.Context, level slog.Level, msg string, args ...any) {
-	var pcs [1]uintptr
-	// skip [runtime.Callers, this function, this function's caller]
-	runtime.Callers(callerSkip, pcs[:])
-	pc := pcs[0]
-	t := time.Now().UTC()
-	if !sl.utc {
-		t = t.Local()
-	}
-
-	r := slog.NewRecord(t, level, msg, pc)
-	r.Add(args...)
-
+func (sl *SLogger) handle(ctx context.Context, level slog.Level, r slog.Record) {
 	if level >= sl.level {
 		if sl.file != nil {
 			_ = sl.file.Handler().Handle(ctx, r)
@@ -235,28 +223,30 @@ func (sl *SLogger) log(ctx context.Context, level slog.Level, msg string, args .
 	}
 }
 
-func (sl *SLogger) logAttrs(ctx context.Context, level slog.Level, msg string, args ...slog.Attr) {
+func getCaller() uintptr {
 	var pcs [1]uintptr
 	// skip [runtime.Callers, this function, this function's caller]
 	runtime.Callers(callerSkip, pcs[:])
-	pc := pcs[0]
+	return pcs[0]
+}
+
+func (sl *SLogger) getTime() time.Time {
 	t := time.Now().UTC()
 	if !sl.utc {
 		t = t.Local()
 	}
+	return t
+}
+func (sl *SLogger) log(ctx context.Context, level slog.Level, msg string, args ...any) {
+	r := slog.NewRecord(sl.getTime(), level, msg, getCaller())
+	r.Add(args...)
+	sl.handle(ctx, level, r)
+}
 
-	r := slog.NewRecord(t, level, msg, pc)
+func (sl *SLogger) logAttrs(ctx context.Context, level slog.Level, msg string, args ...slog.Attr) {
+	r := slog.NewRecord(sl.getTime(), level, msg, getCaller())
 	r.AddAttrs(args...)
-
-	if level >= sl.level {
-		if sl.file != nil {
-			_ = sl.file.Handler().Handle(ctx, r)
-		}
-		_ = sl.stdout.Handler().Handle(ctx, r)
-	}
-	if sl.stderr.Handler().Enabled(context.Background(), level) {
-		_ = sl.stderr.Handler().Handle(ctx, r)
-	}
+	sl.handle(ctx, level, r)
 }
 
 func (sl *SLogger) Debug(msg string, args ...any) {
