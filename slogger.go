@@ -50,7 +50,7 @@ type SLogger struct {
 
 // New will allocate a new SLogger-object and return a pointer to the new SLogger-object.
 func New(opts ...Option) *SLogger {
-	log := &SLogger{
+	sl := &SLogger{
 		file:      nil,
 		stdout:    nil,
 		stderr:    nil,
@@ -68,53 +68,42 @@ func New(opts ...Option) *SLogger {
 		compress:  false,
 	}
 	for _, opt := range opts {
-		opt(log)
+		opt(sl)
 	}
 
-	log.options = &slog.HandlerOptions{
-		AddSource:   log.addSource,
-		Level:       log.level,
+	sl.options = &slog.HandlerOptions{
+		AddSource:   sl.addSource,
+		Level:       sl.level,
 		ReplaceAttr: replaceAttrs,
 	}
-	if log.filename != "" {
-		log.wc = &lumberjack.Logger{
-			Filename:   log.filename,
-			MaxSize:    log.maxSize, // megabytes
-			MaxBackups: log.maxBack,
-			MaxAge:     log.maxAge,
-			LocalTime:  log.localtime,
-			Compress:   log.compress,
+	if sl.filename != "" {
+		sl.wc = &lumberjack.Logger{
+			Filename:   sl.filename,
+			MaxSize:    sl.maxSize, // megabytes
+			MaxBackups: sl.maxBack,
+			MaxAge:     sl.maxAge,
+			LocalTime:  sl.localtime,
+			Compress:   sl.compress,
 		}
-		var fileHandler slog.Handler
-		if log.logText {
-			fileHandler = slog.NewTextHandler(log.wc, log.options)
-		} else {
-			fileHandler = slog.NewJSONHandler(log.wc, log.options)
-		}
-		log.file = slog.New(fileHandler)
+		sl.file = slog.New(getHandler(sl.wc, sl.logText, sl.options))
 	}
+	sl.stdout = slog.New(getHandler(os.Stdout, sl.logText, sl.options))
 
 	stderrOptions := &slog.HandlerOptions{
-		AddSource:   log.addSource,
+		AddSource:   sl.addSource,
 		Level:       LevelError,
 		ReplaceAttr: replaceAttrs,
 	}
+	sl.stderr = slog.New(getHandler(os.Stderr, sl.logText, stderrOptions))
 
-	var stdoutHandler slog.Handler
-	var stderrHandler slog.Handler
-	if log.logText {
-		stdoutHandler = slog.NewTextHandler(os.Stdout, log.options)
-		// Log errors to stderr too.
-		stderrHandler = slog.NewTextHandler(os.Stderr, stderrOptions)
-	} else {
-		stdoutHandler = slog.NewJSONHandler(os.Stdout, log.options)
-		// Log errors to stderr too.
-		stderrHandler = slog.NewJSONHandler(os.Stderr, stderrOptions)
+	return sl
+}
+
+func getHandler(w io.WriteCloser, logText bool, options *slog.HandlerOptions) slog.Handler {
+	if logText {
+		return slog.NewTextHandler(w, options)
 	}
-	log.stdout = slog.New(stdoutHandler)
-	log.stderr = slog.New(stderrHandler)
-
-	return log
+	return slog.NewJSONHandler(w, options)
 }
 
 func replaceAttrs(groups []string, a slog.Attr) slog.Attr {
