@@ -24,9 +24,6 @@ const (
 	maxAge     = 28
 )
 
-// Level are the type for possible log levels.
-type Level slog.Level
-
 // Option is the type for allowed options.
 type Option func(*SLogger) Option
 
