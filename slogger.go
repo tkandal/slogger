@@ -12,6 +12,10 @@ import (
 )
 
 const (
+	LevelDebug = slog.LevelDebug
+	LevelInfo  = slog.LevelInfo
+	LevelWarn  = slog.LevelWarn
+	LevelError = slog.LevelError
 	badKey     = "!BADKEY"
 	callerSkip = 3
 	maxSize    = 128
