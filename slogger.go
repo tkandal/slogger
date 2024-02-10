@@ -221,13 +221,13 @@ func (sl *SLogger) clone() *SLogger {
 }
 
 func (sl *SLogger) handle(ctx context.Context, level slog.Level, r slog.Record) {
-	if level >= sl.level {
-		if sl.file != nil {
-			_ = sl.file.Handler().Handle(ctx, r)
-		}
+	if sl.file != nil && sl.file.Handler().Enabled(ctx, level) {
+		_ = sl.file.Handler().Handle(ctx, r)
+	}
+	if sl.stdout != nil && sl.stdout.Handler().Enabled(ctx, level) {
 		_ = sl.stdout.Handler().Handle(ctx, r)
 	}
-	if sl.stderr.Handler().Enabled(context.Background(), level) {
+	if sl.stderr != nil && sl.stderr.Handler().Enabled(ctx, level) {
 		_ = sl.stderr.Handler().Handle(ctx, r)
 	}
 }
@@ -273,9 +273,20 @@ func (sl *SLogger) DebugContext(ctx context.Context, msg string, args ...any) {
 	sl.log(ctx, slog.LevelDebug, msg, args...)
 }
 
-// Enabled reports whether l emits log records at the given context and level.
-func (sl *SLogger) Enabled(l slog.Level) bool {
-	return sl.level >= l
+// FileEnabled reports whether sl's file logger emits log records at the given context and level.
+func (sl *SLogger) FileEnabled(ctx context.Context, l slog.Level) bool {
+	if sl.file != nil {
+		return sl.file.Enabled(ctx, l)
+	}
+	return false
+}
+
+// StdoutEnabled reports whether sl's stdout logger emits log records at the given context and level.
+func (sl *SLogger) StdoutEnabled(ctx context.Context, l slog.Level) bool {
+	if sl.stdout != nil {
+		return sl.stdout.Enabled(ctx, l)
+	}
+	return false
 }
 
 // Error logs at LevelError.
