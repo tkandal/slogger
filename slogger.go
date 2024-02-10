@@ -159,7 +159,7 @@ func LogUTC(b bool) Option {
 	}
 }
 
-// Filename set the name of a log file in addition to logging to stdout and stderr.  The default is no filename.
+// Filename set the name of a log file in addition to logging to stdout and stderr.  The default is no file.
 func Filename(s string) Option {
 	return func(sl *SLogger) Option {
 		tmp := sl.filename
@@ -172,7 +172,7 @@ func Filename(s string) Option {
 func MaxSize(s int) Option {
 	return func(sl *SLogger) Option {
 		tmp := sl.maxSize
-		sl.maxBack = s
+		sl.maxSize = s
 		return MaxSize(tmp)
 	}
 }
@@ -208,7 +208,7 @@ func LocalTime(b bool) Option {
 // Compress set if the old log files should be compresses with gzip.  The default is off.
 func Compress(b bool) Option {
 	return func(sl *SLogger) Option {
-		tmp := sl.localtime
+		tmp := sl.compress
 		sl.compress = b
 		return Compress(tmp)
 	}
