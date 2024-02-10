@@ -170,16 +170,6 @@ func Compress(b bool) Option {
 	}
 }
 
-func (sl *SLogger) Options(opts ...Option) []Option {
-	options := make([]Option, 0)
-	for _, opt := range opts {
-		options = append(options, opt(sl))
-	}
-	sl.options.AddSource = sl.addSource
-	sl.options.Level = sl.level
-	return options
-}
-
 func (sl *SLogger) clone() *SLogger {
 	c := *sl
 	return &c
