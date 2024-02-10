@@ -34,8 +34,8 @@ type SLogger struct {
 	file      *slog.Logger
 	stdout    *slog.Logger
 	stderr    *slog.Logger
-	level     slog.Level
 	addSource bool
+	level     slog.Level
 	options   *slog.HandlerOptions
 	logText   bool
 	wc        io.WriteCloser
@@ -54,8 +54,8 @@ func New(opts ...Option) *SLogger {
 		file:      nil,
 		stdout:    nil,
 		stderr:    nil,
-		level:     LevelInfo,
 		addSource: false,
+		level:     LevelInfo,
 		options:   nil,
 		logText:   false,
 		wc:        nil,
@@ -128,9 +128,9 @@ func replaceAttrs(groups []string, a slog.Attr) slog.Attr {
 
 // LogText turn on or off logging in text format.  The default format is JSON.
 func LogText(b bool) Option {
-	return func(logger *SLogger) Option {
-		tmp := logger.logText
-		logger.logText = b
+	return func(sl *SLogger) Option {
+		tmp := sl.logText
+		sl.logText = b
 		return LogText(tmp)
 	}
 }
@@ -138,81 +138,81 @@ func LogText(b bool) Option {
 // LogLevel set the log-level, level can be set to LevelDebug, LevelInfo, LevelWarn or LevelError.
 // The default level is LevelInfo.
 func LogLevel(l slog.Level) Option {
-	return func(logger *SLogger) Option {
-		tmp := logger.level
-		logger.level = l
+	return func(sl *SLogger) Option {
+		tmp := sl.level
+		sl.level = l
 		return LogLevel(tmp)
 	}
 }
 
 // AddSource turn on or of logging af the source file. The default is false.
 func AddSource(b bool) Option {
-	return func(logger *SLogger) Option {
-		tmp := logger.addSource
-		logger.addSource = b
+	return func(sl *SLogger) Option {
+		tmp := sl.addSource
+		sl.addSource = b
 		return AddSource(tmp)
 	}
 }
 
 // LogUTC turn on or off logging in UTC time, otherwise time will be in local time.  The default is on.
 func LogUTC(b bool) Option {
-	return func(logger *SLogger) Option {
-		tmp := logger.utc
-		logger.utc = b
+	return func(sl *SLogger) Option {
+		tmp := sl.utc
+		sl.utc = b
 		return LogUTC(tmp)
 	}
 }
 
 // Filename set the name of a log file in addition to logging to stdout and stderr.  The default is empty.
 func Filename(s string) Option {
-	return func(logger *SLogger) Option {
-		tmp := logger.filename
-		logger.filename = s
+	return func(sl *SLogger) Option {
+		tmp := sl.filename
+		sl.filename = s
 		return Filename(tmp)
 	}
 }
 
 // MaxSize set the max number for megabytes in size before the log file is rotated. The default is 128 megabytes.
 func MaxSize(s int) Option {
-	return func(logger *SLogger) Option {
-		tmp := logger.maxSize
-		logger.maxBack = s
+	return func(sl *SLogger) Option {
+		tmp := sl.maxSize
+		sl.maxBack = s
 		return MaxSize(tmp)
 	}
 }
 
 // MaxBack set the number of backup files for the log file.  The default is 3 backup files.
 func MaxBack(b int) Option {
-	return func(logger *SLogger) Option {
-		tmp := logger.maxBack
-		logger.maxBack = b
+	return func(sl *SLogger) Option {
+		tmp := sl.maxBack
+		sl.maxBack = b
 		return MaxBack(tmp)
 	}
 }
 
 // MaxAge set the max number of days the backup files are retained.  The default is 28 days.
 func MaxAge(a int) Option {
-	return func(logger *SLogger) Option {
-		tmp := logger.maxAge
-		logger.maxAge = a
+	return func(sl *SLogger) Option {
+		tmp := sl.maxAge
+		sl.maxAge = a
 		return MaxAge(tmp)
 	}
 }
 
 // LocalTime set if the backup files should have a postfix in local time.  The default is off and the file postfix is UTC.
 func LocalTime(b bool) Option {
-	return func(logger *SLogger) Option {
-		tmp := logger.localtime
-		logger.localtime = b
+	return func(sl *SLogger) Option {
+		tmp := sl.localtime
+		sl.localtime = b
 		return LocalTime(tmp)
 	}
 }
 
 // Compress set if the backup files should be compresses with gzip.  The default is off.
 func Compress(b bool) Option {
-	return func(logger *SLogger) Option {
-		tmp := logger.localtime
-		logger.compress = b
+	return func(sl *SLogger) Option {
+		tmp := sl.localtime
+		sl.compress = b
 		return Compress(tmp)
 	}
 }
