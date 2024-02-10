@@ -85,6 +85,7 @@ func replaceAttrs(groups []string, a slog.Attr) slog.Attr {
 	return a
 }
 
+// Level set the log-level.
 func Level(l slog.Level) Option {
 	return func(logger *SLogger) Option {
 		tmp := logger.level
@@ -93,6 +94,7 @@ func Level(l slog.Level) Option {
 	}
 }
 
+// AddSource turn on or of logging af the source file.
 func AddSource(b bool) Option {
 	return func(logger *SLogger) Option {
 		tmp := logger.addSource
@@ -101,6 +103,7 @@ func AddSource(b bool) Option {
 	}
 }
 
+// Filename set the name of a log file in addition to logging to stdout and stderr.
 func Filename(s string) Option {
 	return func(logger *SLogger) Option {
 		tmp := logger.filename
@@ -109,6 +112,7 @@ func Filename(s string) Option {
 	}
 }
 
+// MaxSize set the max number for megabytes in size before the log file is rotated.
 func MaxSize(s int) Option {
 	return func(logger *SLogger) Option {
 		tmp := logger.maxSize
@@ -117,6 +121,7 @@ func MaxSize(s int) Option {
 	}
 }
 
+// MaxBack set the number of backups for the log file.
 func MaxBack(b int) Option {
 	return func(logger *SLogger) Option {
 		tmp := logger.maxBack
@@ -125,6 +130,7 @@ func MaxBack(b int) Option {
 	}
 }
 
+// MaxAge set the max number of days before the log file is rotated.
 func MaxAge(a int) Option {
 	return func(logger *SLogger) Option {
 		tmp := logger.maxAge
@@ -133,6 +139,7 @@ func MaxAge(a int) Option {
 	}
 }
 
+// LocalTime set if the backup files should have a postfix in local time.
 func LocalTime(b bool) Option {
 	return func(logger *SLogger) Option {
 		tmp := logger.localtime
@@ -141,6 +148,7 @@ func LocalTime(b bool) Option {
 	}
 }
 
+// Compress set if the backup files should be compresses with gzip.
 func Compress(b bool) Option {
 	return func(logger *SLogger) Option {
 		tmp := logger.localtime
