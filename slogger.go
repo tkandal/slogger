@@ -240,7 +240,7 @@ func (sl *SLogger) handle(ctx context.Context, level slog.Level, r slog.Record) 
 	}
 	if sl.stderr != nil && sl.stderr.Handler().Enabled(ctx, level) {
 		if err := sl.stderr.Handler().Handle(ctx, r); err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "failed to write to stderr; error = %v", err)
+			_, _ = fmt.Fprintf(os.Stdout, "failed to write to stderr; error = %v", err)
 			return err
 		}
 	}
