@@ -43,21 +43,22 @@ type Option func(*SLogger) Option
 //
 // Only log messages with LevelError will be logged to stderr in addition to other destinations.
 type SLogger struct {
-	file      *slog.Logger
-	stdout    *slog.Logger
-	stderr    *slog.Logger
-	addSource bool
-	level     slog.Level
-	options   *slog.HandlerOptions
-	text      bool
-	wc        io.WriteCloser
-	utc       bool
-	filename  string
-	maxSize   int
-	maxBack   int
-	maxAge    int
-	localtime bool
-	compress  bool
+	file          *slog.Logger
+	stdout        *slog.Logger
+	stderr        *slog.Logger
+	addSource     bool
+	level         slog.Level
+	options       *slog.HandlerOptions
+	stderrOptions *slog.HandlerOptions
+	text          bool
+	wc            io.WriteCloser
+	utc           bool
+	filename      string
+	maxSize       int
+	maxBack       int
+	maxAge        int
+	localtime     bool
+	compress      bool
 }
 
 // New creates a new Logger with the given options, if any.  Check options for the default settings.
@@ -101,12 +102,12 @@ func New(opts ...Option) *SLogger {
 	}
 	sl.stdout = slog.New(getHandler(os.Stdout, sl.text, sl.options))
 
-	stderrOptions := &slog.HandlerOptions{
+	sl.stderrOptions = &slog.HandlerOptions{
 		AddSource:   sl.addSource,
 		Level:       LevelError,
 		ReplaceAttr: replaceAttrs,
 	}
-	sl.stderr = slog.New(getHandler(os.Stderr, sl.text, stderrOptions))
+	sl.stderr = slog.New(getHandler(os.Stderr, sl.text, sl.stderrOptions))
 
 	return sl
 }
@@ -220,7 +221,8 @@ func Compress(b bool) Option {
 	}
 }
 
-// Options sets new options for add source, log level and UTC in one go.
+// Options may set new options for add source, log level and/or UTC in one go for file and stdout,
+// but log level for stderr will remain at error level.
 func (sl *SLogger) Options(opts ...Option) []Option {
 	options := make([]Option, 0, len(opts))
 	for _, opt := range opts {
@@ -228,6 +230,7 @@ func (sl *SLogger) Options(opts ...Option) []Option {
 	}
 	sl.options.Level = sl.level
 	sl.options.AddSource = sl.addSource
+	sl.stderrOptions.AddSource = sl.addSource
 	return options
 }
 
