@@ -220,6 +220,17 @@ func Compress(b bool) Option {
 	}
 }
 
+// Options sets new options for add source, log level and UTC in one go.
+func (sl *SLogger) Options(opts ...Option) []Option {
+	options := make([]Option, 0, len(opts))
+	for _, opt := range opts {
+		options = append(options, opt(sl))
+	}
+	sl.options.Level = sl.level
+	sl.options.AddSource = sl.addSource
+	return options
+}
+
 func (sl *SLogger) clone() *SLogger {
 	c := *sl
 	return &c
@@ -232,13 +243,13 @@ func (sl *SLogger) handle(ctx context.Context, level slog.Level, r slog.Record) 
 			return err
 		}
 	}
-	if sl.stdout != nil && sl.stdout.Handler().Enabled(ctx, level) {
+	if sl.stdout.Handler().Enabled(ctx, level) {
 		if err := sl.stdout.Handler().Handle(ctx, r); err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "failed to write to stdput; error = %v", err)
 			return err
 		}
 	}
-	if sl.stderr != nil && sl.stderr.Handler().Enabled(ctx, level) {
+	if sl.stderr.Handler().Enabled(ctx, level) {
 		if err := sl.stderr.Handler().Handle(ctx, r); err != nil {
 			_, _ = fmt.Fprintf(os.Stdout, "failed to write to stderr; error = %v", err)
 			return err
@@ -248,10 +259,10 @@ func (sl *SLogger) handle(ctx context.Context, level slog.Level, r slog.Record) 
 }
 
 func (sl *SLogger) getTime() time.Time {
-	if !sl.utc {
-		return time.Now()
+	if sl.utc {
+		return time.Now().UTC()
 	}
-	return time.Now().UTC()
+	return time.Now()
 }
 
 func (sl *SLogger) log(ctx context.Context, level slog.Level, msg string, args ...any) {
