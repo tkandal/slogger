@@ -36,7 +36,13 @@ const (
 // A Level is the importance or severity of a log event.
 // The higher the level, the more important or severe the event.
 type Level struct {
-	slog.Level
+	level slog.Level
+}
+
+// Level returns the receiver.
+// It implements [Leveler].
+func (l Level) Level() slog.Level {
+	return l.level
 }
 
 // Option is the type for allowed options.
@@ -53,7 +59,7 @@ type SLogger struct {
 	stdout    *slog.Logger
 	stderr    *slog.Logger
 	addSource bool
-	level     slog.Level
+	level     Level
 	options   *slog.HandlerOptions
 	text      bool
 	wc        io.WriteCloser
@@ -73,7 +79,7 @@ func New(opts ...Option) *SLogger {
 		stdout:    nil,
 		stderr:    nil,
 		addSource: false,
-		level:     LevelInfo,
+		level:     Level{level: LevelInfo},
 		options:   nil,
 		text:      false,
 		wc:        nil,
@@ -144,7 +150,7 @@ func LogText(b bool) Option {
 
 // LogLevel set the log-level, level can be set to LevelDebug, LevelInfo, LevelWarn or LevelError.
 // The default level is LevelInfo.
-func LogLevel(l slog.Level) Option {
+func LogLevel(l Level) Option {
 	return func(sl *SLogger) Option {
 		tmp := sl.level
 		sl.level = l
