@@ -33,6 +33,12 @@ const (
 	maxAge     = 28
 )
 
+// A Level is the importance or severity of a log event.
+// The higher the level, the more important or severe the event.
+type Level struct {
+	slog.Level
+}
+
 // Option is the type for allowed options.
 type Option func(*SLogger) Option
 
@@ -43,22 +49,21 @@ type Option func(*SLogger) Option
 //
 // Only log messages with LevelError will be logged to stderr in addition to other destinations.
 type SLogger struct {
-	file          *slog.Logger
-	stdout        *slog.Logger
-	stderr        *slog.Logger
-	addSource     bool
-	level         slog.Level
-	options       *slog.HandlerOptions
-	stderrOptions *slog.HandlerOptions
-	text          bool
-	wc            io.WriteCloser
-	utc           bool
-	filename      string
-	maxSize       int
-	maxBack       int
-	maxAge        int
-	localtime     bool
-	compress      bool
+	file      *slog.Logger
+	stdout    *slog.Logger
+	stderr    *slog.Logger
+	addSource bool
+	level     slog.Level
+	options   *slog.HandlerOptions
+	text      bool
+	wc        io.WriteCloser
+	utc       bool
+	filename  string
+	maxSize   int
+	maxBack   int
+	maxAge    int
+	localtime bool
+	compress  bool
 }
 
 // New creates a new Logger with the given options, if any.  Check options for the default settings.
@@ -102,12 +107,12 @@ func New(opts ...Option) *SLogger {
 	}
 	sl.stdout = slog.New(getHandler(os.Stdout, sl.text, sl.options))
 
-	sl.stderrOptions = &slog.HandlerOptions{
+	stderrOptions := &slog.HandlerOptions{
 		AddSource:   sl.addSource,
 		Level:       LevelError,
 		ReplaceAttr: replaceAttrs,
 	}
-	sl.stderr = slog.New(getHandler(os.Stderr, sl.text, sl.stderrOptions))
+	sl.stderr = slog.New(getHandler(os.Stderr, sl.text, stderrOptions))
 
 	return sl
 }
@@ -219,19 +224,6 @@ func Compress(b bool) Option {
 		sl.compress = b
 		return Compress(tmp)
 	}
-}
-
-// Options may set new options for add source, log level and/or UTC in one go for file and stdout,
-// but log level for stderr will remain at error level.
-func (sl *SLogger) Options(opts ...Option) []Option {
-	options := make([]Option, 0, len(opts))
-	for _, opt := range opts {
-		options = append(options, opt(sl))
-	}
-	sl.options.Level = sl.level
-	sl.options.AddSource = sl.addSource
-	sl.stderrOptions.AddSource = sl.addSource
-	return options
 }
 
 func (sl *SLogger) clone() *SLogger {
